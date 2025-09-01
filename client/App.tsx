@@ -1,0 +1,48 @@
+import "./global.css";
+
+import { Toaster } from "@/components/ui/toaster";
+import { createRoot } from "react-dom/client";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import Login from "./pages/Login";
+import Signup from "./pages/Signup";
+import Dashboard from "./pages/Dashboard";
+import Placeholder from "./pages/Placeholder";
+
+const queryClient = new QueryClient();
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/friends" element={<Placeholder title="Friends" description="Manage your friends and connections" />} />
+          <Route path="/forgot-password" element={<Placeholder title="Forgot Password" description="Reset your account password" />} />
+          <Route path="/demo" element={<Placeholder title="Demo" description="Watch ConnectSphere in action" />} />
+          <Route path="/about" element={<Placeholder title="About Us" description="Learn more about ConnectSphere" />} />
+          <Route path="/careers" element={<Placeholder title="Careers" description="Join our team" />} />
+          <Route path="/contact" element={<Placeholder title="Contact" description="Get in touch with us" />} />
+          <Route path="/blog" element={<Placeholder title="Blog" description="Latest news and updates" />} />
+          <Route path="/help" element={<Placeholder title="Help Center" description="Find answers and support" />} />
+          <Route path="/privacy" element={<Placeholder title="Privacy Policy" description="How we protect your data" />} />
+          <Route path="/terms" element={<Placeholder title="Terms of Service" description="Our terms and conditions" />} />
+          <Route path="/status" element={<Placeholder title="System Status" description="Check ConnectSphere service status" />} />
+          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
+
+createRoot(document.getElementById("root")!).render(<App />);
