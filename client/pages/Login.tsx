@@ -3,17 +3,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Video, Eye, EyeOff, Mail } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/contexts/UserContext";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login, isLoading, isAuthenticated } = useUser();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const validateForm = () => {
     const errors: string[] = [];
@@ -27,7 +35,6 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     const errors = validateForm();
     if (errors.length > 0) {
@@ -36,23 +43,17 @@ export default function Login() {
         description: errors[0],
         variant: "destructive",
       });
-      setIsLoading(false);
       return;
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // In a real app, this would be an API call to authenticate
-      console.log("Logging in with:", { email, password });
+      await login(email, password);
 
       toast({
         title: "Welcome back!",
-        description: "You've successfully signed in to ConnectSphere.",
+        description: "You've successfully signed in to OmniTalk.",
       });
 
-      // Redirect to dashboard
       navigate("/dashboard");
     } catch (error) {
       toast({
@@ -60,16 +61,13 @@ export default function Login() {
         description: "Invalid email or password. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleGoogleLogin = async () => {
-    setIsLoading(true);
     try {
-      // Simulate OAuth flow
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real app, this would initiate OAuth flow
+      await login("google.oauth@example.com", "oauth_token");
 
       toast({
         title: "Welcome back!",
@@ -83,16 +81,13 @@ export default function Login() {
         description: "Unable to sign in with Google. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleAppleLogin = async () => {
-    setIsLoading(true);
     try {
-      // Simulate OAuth flow
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real app, this would initiate OAuth flow
+      await login("apple.oauth@example.com", "oauth_token");
 
       toast({
         title: "Welcome back!",
@@ -106,8 +101,6 @@ export default function Login() {
         description: "Unable to sign in with Apple. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 

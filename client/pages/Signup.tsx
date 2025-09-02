@@ -3,13 +3,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Video, Eye, EyeOff, Mail, User, CheckCircle } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser } from "@/contexts/UserContext";
 
 export default function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -20,6 +20,14 @@ export default function Signup() {
 
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login, isLoading, isAuthenticated } = useUser();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    }
+  }, [isAuthenticated, navigate]);
 
   const validatePassword = (password: string) => {
     const minLength = password.length >= 8;
@@ -56,7 +64,6 @@ export default function Signup() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
 
     const errors = validateForm();
     if (errors.length > 0) {
@@ -65,23 +72,21 @@ export default function Signup() {
         description: errors[0],
         variant: "destructive",
       });
-      setIsLoading(false);
       return;
     }
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
       // In a real app, this would be an API call to create the account
       console.log("Creating account for:", formData);
 
+      // Use the login function to sign them in after signup
+      await login(formData.email, formData.password);
+
       toast({
         title: "Account Created Successfully!",
-        description: "Welcome to ConnectSphere. You're now signed in.",
+        description: "Welcome to OmniTalk. You're now signed in.",
       });
 
-      // Redirect to dashboard
       navigate("/dashboard");
     } catch (error) {
       toast({
@@ -89,20 +94,17 @@ export default function Signup() {
         description: "Something went wrong. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleGoogleSignup = async () => {
-    setIsLoading(true);
     try {
-      // Simulate OAuth flow
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real app, this would initiate OAuth flow
+      await login("google.oauth@example.com", "oauth_token");
 
       toast({
         title: "Account Created Successfully!",
-        description: "Welcome to ConnectSphere. You're now signed in.",
+        description: "Welcome to OmniTalk. You're now signed in.",
       });
 
       navigate("/dashboard");
@@ -112,20 +114,17 @@ export default function Signup() {
         description: "Unable to create account with Google. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleAppleSignup = async () => {
-    setIsLoading(true);
     try {
-      // Simulate OAuth flow
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // In a real app, this would initiate OAuth flow
+      await login("apple.oauth@example.com", "oauth_token");
 
       toast({
         title: "Account Created Successfully!",
-        description: "Welcome to ConnectSphere. You're now signed in.",
+        description: "Welcome to OmniTalk. You're now signed in.",
       });
 
       navigate("/dashboard");
@@ -135,8 +134,6 @@ export default function Signup() {
         description: "Unable to create account with Apple. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
