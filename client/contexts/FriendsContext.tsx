@@ -122,171 +122,204 @@ export const FriendsProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Load friends and incoming requests from backend
+  // Mock data initialization
   useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        const { api } = await import('@/lib/api');
-        const [friendsData, requests] = await Promise.all([
-          api('/api/friends'),
-          api('/api/friends/requests')
-        ]);
-        const baseFriends: Friend[] = (friendsData || []).map((u: any) => ({
-          id: u._id || u.id,
-          userId: u._id || u.id,
-          name: u.displayName || u.email,
-          email: u.email,
-          avatar: u.profilePictureUrl,
-          status: (u.status || u.onlineStatus || 'offline'),
+    if (user) {
+      setFriends([
+        {
+          id: '1',
+          userId: 'user1',
+          name: 'Alice Johnson',
+          email: 'alice@company.com',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
+          status: 'online',
           lastSeen: new Date(),
-          mutualFriends: 0,
+          mutualFriends: 12,
+          location: 'San Francisco, CA',
+          bio: 'Product Manager at TechCorp. Love building amazing experiences!',
+          company: 'TechCorp',
+          title: 'Senior Product Manager',
+          isBlocked: false,
+          isFavorite: true,
+          addedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+          customNote: 'Great collaborator on the Q3 project'
+        },
+        {
+          id: '2',
+          userId: 'user2',
+          name: 'Bob Smith',
+          email: 'bob@startup.io',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Bob',
+          status: 'away',
+          lastSeen: new Date(Date.now() - 5 * 60 * 1000),
+          mutualFriends: 8,
+          location: 'New York, NY',
+          bio: 'Full-stack developer passionate about React and Node.js',
+          company: 'StartupCorp',
+          title: 'Lead Developer',
           isBlocked: false,
           isFavorite: false,
-          addedAt: new Date()
-        }));
-        setFriends(baseFriends);
-        setFriendRequests((requests || []).map((r: any) => ({
-          id: r._id || r.id,
-          fromUserId: r.requester?._id || r.requester,
-          toUserId: r.addressee?._id || r.addressee,
-          fromUser: {
-            id: r.requester?._id || r.requester,
-            name: r.requester?.displayName || r.requester?.email || 'User',
-            email: r.requester?.email || '',
-            avatar: r.requester?.profilePictureUrl,
-            mutualFriends: 0,
-          },
-          sentAt: new Date(r.createdAt || Date.now()),
-          status: r.status || 'pending'
-        })));
-        // Fetch live presence snapshot (ids + fallback ids by email)
-        if (baseFriends.length) {
-          try {
-            const ids = baseFriends.map(f => f.userId).join(',');
-            const presenceMap = await api(`/api/users/presence?ids=${encodeURIComponent(ids)}`);
-            const toFallback = (email: string) => {
-              try {
-                const b64 = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/,'');
-                return b64.slice(0,24);
-              } catch { return ''; }
-            };
-            const fallbackIds = baseFriends.map(f => toFallback(f.email)).filter(Boolean);
-            let fallbackPresence: Record<string,string> = {};
-            if (fallbackIds.length) {
-              fallbackPresence = await api(`/api/users/presence?ids=${encodeURIComponent(fallbackIds.join(','))}`);
-            }
-            setFriends(prev => prev.map(f => {
-              const byId = presenceMap[f.userId];
-              const byFallback = fallbackPresence[toFallback(f.email)];
-              const status = byId || byFallback || f.status;
-              return { ...f, status };
-            }));
-          } catch (e) { /* ignore */ }
+          addedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
+        },
+        {
+          id: '3',
+          userId: 'user3',
+          name: 'Carol Davis',
+          email: 'carol@design.studio',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carol',
+          status: 'busy',
+          lastSeen: new Date(),
+          mutualFriends: 5,
+          location: 'Austin, TX',
+          bio: 'UX Designer crafting beautiful and intuitive experiences',
+          company: 'Design Studio',
+          title: 'Senior UX Designer',
+          isBlocked: false,
+          isFavorite: true,
+          addedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000)
+        },
+        {
+          id: '4',
+          userId: 'user4',
+          name: 'David Wilson',
+          email: 'david@enterprise.com',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=David',
+          status: 'offline',
+          lastSeen: new Date(Date.now() - 2 * 60 * 60 * 1000),
+          mutualFriends: 15,
+          location: 'Seattle, WA',
+          bio: 'Engineering Manager building scalable systems',
+          company: 'Enterprise Inc',
+          title: 'Engineering Manager',
+          isBlocked: false,
+          isFavorite: false,
+          addedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+          customNote: 'Former colleague from Microsoft'
         }
-      } catch (e) {
-        console.warn('Failed to load friends/requests', e);
-      }
-    })();
+      ]);
+
+      setFriendRequests([
+        {
+          id: 'req1',
+          fromUserId: 'user5',
+          toUserId: user.id,
+          fromUser: {
+            id: 'user5',
+            name: 'Emily Chen',
+            email: 'emily@techsolutions.com',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Emily',
+            bio: 'Software architect with 10+ years experience',
+            mutualFriends: 3
+          },
+          message: 'Hi! We worked together on the API project last year. Would love to connect!',
+          sentAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+          status: 'pending'
+        },
+        {
+          id: 'req2',
+          fromUserId: 'user6',
+          toUserId: user.id,
+          fromUser: {
+            id: 'user6',
+            name: 'Michael Brown',
+            email: 'michael@consulting.com',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Michael',
+            bio: 'Business consultant helping startups scale',
+            mutualFriends: 7
+          },
+          message: 'Saw your presentation at the conference. Great insights on team communication!',
+          sentAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+          status: 'pending'
+        }
+      ]);
+
+      setSentRequests([
+        {
+          id: 'sent1',
+          fromUserId: user.id,
+          toUserId: 'user7',
+          fromUser: {
+            id: 'user7',
+            name: 'Sarah Taylor',
+            email: 'sarah@marketing.pro',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
+            bio: 'Marketing director with expertise in growth strategies',
+            mutualFriends: 2
+          },
+          message: 'Would love to connect and discuss collaboration opportunities!',
+          sentAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
+          status: 'pending'
+        }
+      ]);
+
+      setSuggestions([
+        {
+          id: 'sug1',
+          name: 'Jennifer Lopez',
+          email: 'jennifer@company.com',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jennifer',
+          mutualFriends: 4,
+          reason: 'mutual_friends',
+          company: 'TechCorp',
+          title: 'Product Designer'
+        },
+        {
+          id: 'sug2',
+          name: 'Robert Johnson',
+          email: 'robert@startup.co',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Robert',
+          mutualFriends: 6,
+          reason: 'company',
+          company: 'StartupCorp',
+          title: 'Backend Engineer'
+        },
+        {
+          id: 'sug3',
+          name: 'Lisa Anderson',
+          email: 'lisa@consulting.com',
+          avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa',
+          mutualFriends: 2,
+          reason: 'linkedin',
+          company: 'Consulting Pro',
+          title: 'Strategy Consultant'
+        }
+      ]);
+    }
   }, [user]);
 
-  // Periodically refresh presence snapshot
-  useEffect(() => {
-    if (!user || friends.length === 0) return;
-    const id = setInterval(async () => {
-      try {
-        const { api } = await import('@/lib/api');
-        const ids = friends.map(f => f.userId).join(',');
-        const presenceMap = await api(`/api/users/presence?ids=${encodeURIComponent(ids)}`);
-        const toFallback = (email: string) => {
-          try {
-            const b64 = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/,'');
-            return b64.slice(0,24);
-          } catch { return ''; }
-        };
-        const fallbackIds = friends.map(f => toFallback(f.email)).filter(Boolean);
-        let fallbackPresence: Record<string,string> = {};
-        if (fallbackIds.length) fallbackPresence = await api(`/api/users/presence?ids=${encodeURIComponent(fallbackIds.join(','))}`);
-        setFriends(prev => prev.map(f => ({
-          ...f,
-          status: (presenceMap[f.userId] || fallbackPresence[toFallback(f.email)] || f.status)
-        })));
-      } catch {}
-    }, 30000);
-    return () => clearInterval(id);
-  }, [user, friends.length]);
-
-  // Bind realtime presence updates via Socket.IO
-  useEffect(() => {
-    if (!user) return;
-    let unsub: (() => void) | undefined;
-    (async () => {
-      try {
-        const { connectSocket, getSocket } = await import('@/lib/socket');
-        await connectSocket();
-        const s = getSocket();
-        const toFallback = (email: string) => {
-          try {
-            const b64 = btoa(email).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/,'');
-            return b64.slice(0,24);
-          } catch { return ''; }
-        };
-        const handler = (payload: { userId: string; status: 'online' | 'offline' | 'away' | 'dnd' }) => {
-          setFriends(prev => prev.map(f => {
-            const fidMatch = (f.userId === payload.userId || f.id === payload.userId);
-            const fallbackMatch = toFallback(f.email) === payload.userId;
-            if (fidMatch || fallbackMatch) {
-              return { ...f, status: payload.status, lastSeen: new Date() };
-            }
-            return f;
-          }));
-        };
-        s.on('presence:update', handler);
-        unsub = () => { s.off('presence:update', handler); };
-      } catch (e) {
-        console.warn('Presence socket binding failed', e);
-      }
-    })();
-    return () => { if (unsub) unsub(); };
-  }, [user]);
-
-  // Keep suggestions as mock for now
-  useEffect(() => {
-    if (!user) return;
-    setSuggestions([
-      { id: 'sug1', name: 'Jennifer Lopez', email: 'jennifer@company.com', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jennifer', mutualFriends: 4, reason: 'mutual_friends', company: 'TechCorp', title: 'Product Designer' },
-      { id: 'sug2', name: 'Robert Johnson', email: 'robert@startup.co', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Robert', mutualFriends: 6, reason: 'company', company: 'StartupCorp', title: 'Backend Engineer' },
-      { id: 'sug3', name: 'Lisa Anderson', email: 'lisa@consulting.com', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa', mutualFriends: 2, reason: 'linkedin', company: 'Consulting Pro', title: 'Strategy Consultant' }
-    ]);
-  }, [user]);
-
-  const sendFriendRequest = useCallback(async (userOrEmail: string, message?: string) => {
+  const sendFriendRequest = useCallback(async (userId: string, message?: string) => {
     setIsSending(true);
     try {
-      const { api } = await import('@/lib/api');
-      const isEmail = /@/.test(userOrEmail) && !/^[0-9a-fA-F]{24}$/.test(userOrEmail);
-      const body = isEmail ? { addresseeEmail: userOrEmail } : { addresseeId: userOrEmail };
-      const fr = await api('/api/friends/requests', { method: 'POST', body: JSON.stringify(body) });
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       const newRequest: FriendRequest = {
-        id: fr._id || fr.id,
-        fromUserId: fr.requester || (user?.id || ''),
-        toUserId: fr.addressee || userId,
+        id: `sent-${Date.now()}`,
+        fromUserId: user?.id || '',
+        toUserId: userId,
         fromUser: {
-          id: fr.requester || (user?.id || ''),
-          name: user?.displayName || user?.email || 'You',
-          email: user?.email || '',
+          id: userId,
+          name: 'New User',
+          email: 'newuser@example.com',
           mutualFriends: 0
         },
         message,
-        sentAt: new Date(fr.createdAt || Date.now()),
-        status: fr.status || 'pending'
+        sentAt: new Date(),
+        status: 'pending'
       };
+      
       setSentRequests(prev => [...prev, newRequest]);
-      toast({ title: 'Friend request sent', description: 'Your friend request has been sent successfully' });
-    } catch (error: any) {
-      let desc = 'Please try again later';
-      try { const d = await (error?.response?.json?.() ?? null); desc = d?.error || desc; } catch {}
-      toast({ title: 'Failed to send request', description: desc, variant: 'destructive' });
+      
+      toast({
+        title: "Friend request sent",
+        description: "Your friend request has been sent successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to send request",
+        description: "Please try again later",
+        variant: "destructive",
+      });
     } finally {
       setIsSending(false);
     }
@@ -294,41 +327,55 @@ export const FriendsProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const acceptFriendRequest = useCallback(async (requestId: string) => {
     try {
-      const { api } = await import('@/lib/api');
-      await api(`/api/friends/requests/${requestId}`, { method: 'PUT', body: JSON.stringify({ action: 'accept' }) });
       const request = friendRequests.find(r => r.id === requestId);
-      if (request) {
-        const newFriend: Friend = {
-          id: request.fromUser.id,
-          userId: request.fromUserId,
-          name: request.fromUser.name,
-          email: request.fromUser.email,
-          avatar: request.fromUser.avatar,
-          status: 'online',
-          lastSeen: new Date(),
-          mutualFriends: request.fromUser.mutualFriends,
-          bio: request.fromUser.bio,
-          isBlocked: false,
-          isFavorite: false,
-          addedAt: new Date()
-        };
-        setFriends(prev => [...prev, newFriend]);
-      }
+      if (!request) return;
+
+      // Add to friends list
+      const newFriend: Friend = {
+        id: request.fromUser.id,
+        userId: request.fromUserId,
+        name: request.fromUser.name,
+        email: request.fromUser.email,
+        avatar: request.fromUser.avatar,
+        status: 'online',
+        lastSeen: new Date(),
+        mutualFriends: request.fromUser.mutualFriends,
+        bio: request.fromUser.bio,
+        isBlocked: false,
+        isFavorite: false,
+        addedAt: new Date()
+      };
+
+      setFriends(prev => [...prev, newFriend]);
       setFriendRequests(prev => prev.filter(r => r.id !== requestId));
-      toast({ title: 'Friend request accepted', description: request ? `You are now friends with ${request.fromUser.name}` : 'Friend added' });
+      
+      toast({
+        title: "Friend request accepted",
+        description: `You are now friends with ${request.fromUser.name}`,
+      });
     } catch (error) {
-      toast({ title: 'Failed to accept request', description: 'Please try again later', variant: 'destructive' });
+      toast({
+        title: "Failed to accept request",
+        description: "Please try again later",
+        variant: "destructive",
+      });
     }
   }, [friendRequests, toast]);
 
   const declineFriendRequest = useCallback(async (requestId: string) => {
     try {
-      const { api } = await import('@/lib/api');
-      await api(`/api/friends/requests/${requestId}`, { method: 'PUT', body: JSON.stringify({ action: 'decline' }) });
       setFriendRequests(prev => prev.filter(r => r.id !== requestId));
-      toast({ title: 'Friend request declined', description: 'The request has been removed' });
+      
+      toast({
+        title: "Friend request declined",
+        description: "The request has been removed",
+      });
     } catch (error) {
-      toast({ title: 'Failed to decline request', description: 'Please try again later', variant: 'destructive' });
+      toast({
+        title: "Failed to decline request",
+        description: "Please try again later",
+        variant: "destructive",
+      });
     }
   }, [toast]);
 
@@ -369,17 +416,23 @@ export const FriendsProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const blockUser = useCallback(async (userId: string) => {
     try {
-      const { api } = await import('@/lib/api');
-      await api(`/api/friends/requests/${userId}`, { method: 'DELETE' });
       const friend = friends.find(f => f.userId === userId);
       if (friend) {
         const blockedUser = { ...friend, isBlocked: true };
         setBlockedUsers(prev => [...prev, blockedUser]);
         setFriends(prev => prev.filter(f => f.userId !== userId));
       }
-      toast({ title: 'User blocked', description: 'The user has been blocked and removed from your friends' });
+      
+      toast({
+        title: "User blocked",
+        description: "The user has been blocked and removed from your friends",
+      });
     } catch (error) {
-      toast({ title: 'Failed to block user', description: 'Please try again later', variant: 'destructive' });
+      toast({
+        title: "Failed to block user",
+        description: "Please try again later",
+        variant: "destructive",
+      });
     }
   }, [friends, toast]);
 
