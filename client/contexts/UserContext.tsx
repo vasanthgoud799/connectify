@@ -100,24 +100,27 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
   useEffect(() => {
     const initializeUser = async () => {
       try {
-        // Check for existing session
         const savedUser = localStorage.getItem('omnitalk_user');
         const savedPresence = localStorage.getItem('omnitalk_presence');
-        
         if (savedUser) {
           const userData = JSON.parse(savedUser);
           setUser(userData);
-          
-          // Set default presence
           const presenceData = savedPresence ? JSON.parse(savedPresence) : {
             status: 'online' as PresenceStatus,
             lastSeen: new Date(),
             isInCall: false
           };
           setPresence(presenceData);
-          
-          // Start presence heartbeat
           startPresenceHeartbeat();
+        } else {
+          const token = localStorage.getItem('auth_token');
+          const basicUser = localStorage.getItem('auth_user');
+          if (token && basicUser) {
+            const u = JSON.parse(basicUser);
+            setUser(u);
+            setPresence({ status: 'online', lastSeen: new Date(), isInCall: false });
+            startPresenceHeartbeat();
+          }
         }
       } catch (error) {
         console.error('Error initializing user:', error);
@@ -125,7 +128,6 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         setIsLoading(false);
       }
     };
-
     initializeUser();
   }, []);
 
@@ -137,6 +139,25 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
     return () => clearInterval(interval);
   };
+
+  // Reflect socket connection state in local presence
+  useEffect(() => {
+    if (!user) return;
+    let unsub: (() => void) | undefined;
+    (async () => {
+      try {
+        const { connectSocket, getSocket } = await import('@/lib/socket');
+        try { await connectSocket(); } catch {}
+        const s = getSocket();
+        const onConnect = () => { setPresenceStatus('online').catch(() => {}); };
+        const onDisconnect = () => { setPresenceStatus('offline').catch(() => {}); };
+        s.on('connect', onConnect);
+        s.on('disconnect', onDisconnect);
+        unsub = () => { s.off('connect', onConnect); s.off('disconnect', onDisconnect); };
+      } catch {}
+    })();
+    return () => { if (unsub) unsub(); };
+  }, [user]);
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     if (!user) return;
@@ -177,11 +198,13 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
         customMessage,
         lastSeen: new Date()
       };
-      
       setPresence(newPresence);
       localStorage.setItem('omnitalk_presence', JSON.stringify(newPresence));
-      
-      console.log('Presence updated:', { status, customMessage });
+      // Heartbeat
+      try {
+        const { api } = await import('@/lib/api');
+        await api('/api/users/presence/heartbeat', { method: 'POST' });
+      } catch {}
     } catch (error) {
       console.error('Error updating presence:', error);
       throw error;
@@ -190,86 +213,91 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const updateLastSeen = () => {
     if (!presence) return;
-    
-    const updatedPresence = {
-      ...presence,
-      lastSeen: new Date()
-    };
-    
+    const updatedPresence = { ...presence, lastSeen: new Date() };
     setPresence(updatedPresence);
     localStorage.setItem('omnitalk_presence', JSON.stringify(updatedPresence));
+    // Send heartbeat to backend to mark online in Redis even if sockets are blocked
+    (async () => {
+      try {
+        const { api } = await import('@/lib/api');
+        await api('/api/users/presence/heartbeat', { method: 'POST' });
+      } catch {}
+    })();
   };
 
   const setInCall = (callId?: string) => {
     if (!presence) return;
-    
     const updatedPresence = {
       ...presence,
       isInCall: !!callId,
       currentCallId: callId,
       lastSeen: new Date()
     };
-    
     setPresence(updatedPresence);
     localStorage.setItem('omnitalk_presence', JSON.stringify(updatedPresence));
+    (async () => {
+      try {
+        const { api } = await import('@/lib/api');
+        await api('/api/users/presence/heartbeat', { method: 'POST' });
+      } catch {}
+    })();
   };
 
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Create mock user profile
+      async function auth(path: string) {
+        const res = await fetch(`/api/auth/${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (!res.ok) {
+          let msg = `${path} failed`;
+          try { const data = await res.json(); msg = data?.error || msg; } catch {}
+          throw new Error(msg);
+        }
+        return res.json();
+      }
+      let data: any;
+      try {
+        data = await auth('login');
+      } catch {
+        data = await auth('signup');
+      }
+      const { token, user: backendUser } = data;
       const newUser: UserProfile = {
-        id: `user_${Date.now()}`,
-        email,
-        firstName: email.split('@')[0].split('.')[0] || 'User',
-        lastName: email.split('@')[0].split('.')[1] || '',
-        displayName: email.split('@')[0].replace('.', ' '),
-        bio: '',
+        id: backendUser._id || backendUser.id,
+        email: backendUser.email,
+        firstName: backendUser.displayName || backendUser.email.split('@')[0],
+        lastName: '',
+        displayName: backendUser.displayName || backendUser.email,
+        avatar: backendUser.profilePictureUrl,
+        bio: backendUser.bio || '',
         location: '',
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         professionalHeadline: '',
         preferences: {
-          notifications: {
-            email: true,
-            push: true,
-            mentions: true,
-            calls: true
-          },
-          privacy: {
-            showOnlineStatus: true,
-            showLastSeen: true,
-            allowDirectMessages: true
-          },
-          appearance: {
-            theme: 'system',
-            language: 'en'
-          }
+          notifications: { email: true, push: true, mentions: true, calls: true },
+          privacy: { showOnlineStatus: true, showLastSeen: true, allowDirectMessages: true },
+          appearance: { theme: 'system', language: 'en' }
         },
-        subscription: {
-          tier: 'free',
-          features: ['basic_calls', 'direct_messages']
-        },
+        subscription: { tier: (backendUser.subscriptionTier || 'free'), features: [] },
         createdAt: new Date(),
         lastActiveAt: new Date()
       };
-
-      const newPresence: UserPresence = {
-        status: 'online',
-        lastSeen: new Date(),
-        isInCall: false
-      };
-
+      const newPresence: UserPresence = { status: 'online', lastSeen: new Date(), isInCall: false };
       setUser(newUser);
       setPresence(newPresence);
-      
       localStorage.setItem('omnitalk_user', JSON.stringify(newUser));
       localStorage.setItem('omnitalk_presence', JSON.stringify(newPresence));
-      
+      localStorage.setItem('auth_token', token);
+      localStorage.setItem('auth_user', JSON.stringify({ id: newUser.id, email: newUser.email, displayName: newUser.displayName }));
       startPresenceHeartbeat();
+      try {
+        const { connectSocket } = await import('@/lib/socket');
+        await connectSocket();
+      } catch {}
     } catch (error) {
       console.error('Login error:', error);
       throw error;
@@ -280,13 +308,12 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      // In a real app, this would invalidate the session on the server
       setUser(null);
       setPresence(null);
       localStorage.removeItem('omnitalk_user');
       localStorage.removeItem('omnitalk_presence');
-      
-      console.log('User logged out');
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
     } catch (error) {
       console.error('Logout error:', error);
       throw error;

@@ -135,14 +135,42 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   
   const { user } = useUser();
 
-  // Initialize with mock data
+  // Load conversations from backend and bind socket events
   useEffect(() => {
-    if (user) {
-      initializeMockData();
-    }
+    if (!user) return;
+    let unsub: (() => void) | undefined;
+    (async () => {
+      try {
+        await getConversations();
+      } catch (e) {
+        console.warn('Failed to load conversations', e);
+      }
+      const { connectSocket, getSocket } = await import("@/lib/socket");
+      try { await connectSocket(); } catch (e) { console.warn('Socket connect error', e); }
+      const s = getSocket();
+      const onServerNew = (payload: { channelId: string; sender: string; senderDisplayName?: string; content: string; createdAt: string }) => {
+        const cid = payload.channelId;
+        const msg: Message = {
+          id: `srv_${Date.now()}`,
+          conversationId: cid,
+          senderId: payload.sender,
+          senderName: payload.senderDisplayName || '',
+          content: payload.content,
+          type: 'text',
+          timestamp: new Date(payload.createdAt),
+          readBy: []
+        };
+        setMessages(prev => ({ ...prev, [cid]: [...(prev[cid] || []), msg] }));
+        setConversations(prev => prev.map(c => c.id === cid ? { ...c, lastMessage: msg, updatedAt: new Date() } : c));
+      };
+      s.on('SERVER:message:new', onServerNew);
+      unsub = () => { s.off('SERVER:message:new', onServerNew); };
+    })();
+    return () => { if (unsub) unsub(); };
   }, [user]);
 
   const initializeMockData = () => {
+    // Deprecated: demo removed
     // Mock conversations
     const mockConversations: Conversation[] = [
       {
@@ -293,22 +321,29 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   const createConversation = async (participants: string[], type: 'direct' | 'group', name?: string): Promise<Conversation> => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      const body: any = type === 'direct' ? { type: 'dm', peerId: participants[0] } : { type: 'group', name, members: participants.map(p => ({ user: p })) };
+      const { api } = await import('@/lib/api');
+      const channel = await api('/api/channels', { method: 'POST', body: JSON.stringify(body) });
+
+      // If the channel already exists, return existing conversation without duplicating
+      const existing = conversations.find(c => c.id === channel._id);
+      if (existing) {
+        return existing;
+      }
+
       const newConversation: Conversation = {
-        id: `conv_${Date.now()}`,
+        id: channel._id,
         type,
-        name,
-        participants: participants.map(userId => ({
-          userId,
-          name: `User ${userId}`,
-          role: userId === user!.id ? 'admin' : 'member',
+        name: channel.name,
+        participants: (channel.members || []).map((m: any) => ({
+          userId: m.user,
+          name: m.displayName || m.user,
+          role: m.role || 'member',
           joinedAt: new Date()
         })),
         unreadCount: 0,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date(channel.createdAt || Date.now()),
+        updatedAt: new Date(channel.updatedAt || Date.now()),
         settings: {
           muted: false,
           pinned: false,
@@ -317,9 +352,13 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
         }
       };
 
-      setConversations(prev => [newConversation, ...prev]);
-      setMessages(prev => ({ ...prev, [newConversation.id]: [] }));
-      
+      setConversations(prev => {
+        const seen = new Set(prev.map(p => p.id));
+        if (seen.has(newConversation.id)) return prev;
+        return [newConversation, ...prev];
+      });
+      setMessages(prev => ({ ...prev, [newConversation.id]: prev[newConversation.id] || [] }));
+
       return newConversation;
     } finally {
       setIsLoading(false);
@@ -329,8 +368,37 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   const getConversations = async () => {
     setIsLoading(true);
     try {
-      // In a real app, this would fetch from API
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const { api } = await import('@/lib/api');
+      const data = await api('/api/channels');
+      const convs: Conversation[] = data.map((ch: any) => ({
+        id: ch._id,
+        type: ch.type === 'dm' ? 'direct' : 'group',
+        name: ch.name,
+        participants: (ch.members || []).map((m: any) => ({ userId: m.user, name: m.displayName || m.user, role: m.role || 'member', joinedAt: new Date() })),
+        lastMessage: ch.lastMessage ? { id: '', conversationId: ch._id, senderId: '', senderName: '', content: ch.lastMessage.content, type: 'text', timestamp: new Date(ch.lastMessage.createdAt), readBy: [] } : undefined,
+        unreadCount: 0,
+        createdAt: new Date(ch.createdAt),
+        updatedAt: new Date(ch.updatedAt),
+        settings: { muted: false, pinned: false, archived: false, notifications: true }
+      }));
+      // Dedupe by id to avoid duplicates from prior state
+      const map = new Map<string, Conversation>();
+      for (const c of convs) map.set(c.id, c);
+      setConversations(Array.from(map.values()));
+      const initialMessages: Record<string, Message[]> = {};
+      for (const ch of data) {
+        initialMessages[ch._id] = (ch.messages || []).map((m: any) => ({
+          id: m._id,
+          conversationId: ch._id,
+          senderId: m.sender,
+          senderName: '',
+          content: m.content,
+          type: 'text',
+          timestamp: new Date(m.createdAt),
+          readBy: []
+        }));
+      }
+      setMessages(initialMessages);
     } finally {
       setIsLoading(false);
     }
@@ -342,52 +410,25 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
       setActiveConversationState(conversation);
       // Mark messages as read
       markAsRead(conversationId, '');
+      // Load latest messages
+      getConversationMessages(conversationId, 50);
     }
   };
 
   const sendMessage = async (conversationId: string, content: string, type: Message['type'] = 'text', replyTo?: string) => {
     if (!user || !content.trim()) return;
 
-    const newMessage: Message = {
-      id: `msg_${Date.now()}`,
-      conversationId,
-      senderId: user.id,
-      senderName: user.displayName,
-      senderAvatar: user.avatar,
-      content: content.trim(),
-      type,
-      timestamp: new Date(),
-      readBy: [],
-      replyTo: replyTo ? {
-        messageId: replyTo,
-        content: messages[conversationId]?.find(m => m.id === replyTo)?.content || '',
-        senderName: messages[conversationId]?.find(m => m.id === replyTo)?.senderName || ''
-      } : undefined
-    };
-
-    // Add message to local state
-    setMessages(prev => ({
-      ...prev,
-      [conversationId]: [...(prev[conversationId] || []), newMessage]
-    }));
-
-    // Update conversation's last message
-    setConversations(prev => prev.map(conv => 
-      conv.id === conversationId 
-        ? { ...conv, lastMessage: newMessage, updatedAt: new Date() }
-        : conv
-    ));
-
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 200));
+      const { getSocket } = await import('@/lib/socket');
+      const s = getSocket();
+      if (s && (s.connected || !s.io.opts.autoConnect)) {
+        s.emit('CLIENT:message:send', { channelId: conversationId, content: content.trim() });
+      } else {
+        const { api } = await import('@/lib/api');
+        await api(`/api/channels/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ content: content.trim() }) });
+      }
     } catch (error) {
       console.error('Failed to send message:', error);
-      // Remove message on error
-      setMessages(prev => ({
-        ...prev,
-        [conversationId]: prev[conversationId]?.filter(m => m.id !== newMessage.id) || []
-      }));
     }
   };
 
@@ -604,27 +645,13 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   };
 
   const searchMessages = async (query: string, conversationId?: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    
+    if (!query.trim()) { setSearchResults([]); return; }
     setIsLoading(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      const allMessages = conversationId 
-        ? messages[conversationId] || []
-        : Object.values(messages).flat();
-      
-      const results = allMessages.filter(msg => 
-        msg.content.toLowerCase().includes(query.toLowerCase()) && !msg.isDeleted
-      );
-      
+      const allMessages = conversationId ? (messages[conversationId] || []) : Object.values(messages).flat();
+      const results = allMessages.filter(msg => msg.content.toLowerCase().includes(query.toLowerCase()) && !msg.isDeleted);
       setSearchResults(results);
-    } finally {
-      setIsLoading(false);
-    }
+    } finally { setIsLoading(false); }
   };
 
   const setTyping = (conversationId: string, isTyping: boolean) => {
@@ -662,8 +689,12 @@ export const MessagingProvider: React.FC<MessagingProviderProps> = ({ children }
   const getConversationMessages = async (conversationId: string, limit: number = 50, before?: string) => {
     setIsLoading(true);
     try {
-      // In a real app, this would fetch messages from API with pagination
-      await new Promise(resolve => setTimeout(resolve, 300));
+      const { api } = await import('@/lib/api');
+      const data = await api(`/api/channels/${conversationId}/messages?limit=${limit}${before ? `&before=${before}` : ''}`);
+      setMessages(prev => ({
+        ...prev,
+        [conversationId]: (data || []).map((m: any) => ({ id: m._id, conversationId, senderId: m.sender, senderName: m.senderDisplayName || '', content: m.content, type: 'text', timestamp: new Date(m.createdAt), readBy: [] }))
+      }));
     } finally {
       setIsLoading(false);
     }
