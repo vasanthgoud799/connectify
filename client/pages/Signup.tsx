@@ -25,7 +25,7 @@ export default function Signup() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/dashboard');
+      navigate("/dashboard");
     }
   }, [isAuthenticated, navigate]);
 
@@ -38,7 +38,7 @@ export default function Signup() {
       minLength,
       hasUppercase,
       hasNumber,
-      isValid: minLength && hasUppercase && hasNumber
+      isValid: minLength && hasUppercase && hasNumber,
     };
   };
 
@@ -76,10 +76,26 @@ export default function Signup() {
     }
 
     try {
-      // In a real app, this would be an API call to create the account
-      console.log("Creating account for:", formData);
+      const payload = {
+        ...formData,
+        displayName: `${formData.firstName} ${formData.lastName}`.trim(),
+      };
 
-      // Use the login function to sign them in after signup
+      console.log("Creating account for:", payload);
+
+      // Send signup request to backend
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText || "Signup failed");
+      }
+
+      // Auto login after signup
       await login(formData.email, formData.password);
 
       toast({
@@ -89,9 +105,11 @@ export default function Signup() {
 
       navigate("/dashboard");
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Something went wrong. Please try again.";
       toast({
         title: "Signup Failed",
-        description: "Something went wrong. Please try again.",
+        description: message,
         variant: "destructive",
       });
     }
@@ -99,19 +117,18 @@ export default function Signup() {
 
   const handleGoogleSignup = async () => {
     try {
-      // In a real app, this would initiate OAuth flow
       await login("google.oauth@example.com", "oauth_token");
-
       toast({
         title: "Account Created Successfully!",
         description: "Welcome to OmniTalk. You're now signed in.",
       });
-
       navigate("/dashboard");
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to create account with Google. Please try again.";
       toast({
         title: "Google Signup Failed",
-        description: "Unable to create account with Google. Please try again.",
+        description: message,
         variant: "destructive",
       });
     }
@@ -119,26 +136,25 @@ export default function Signup() {
 
   const handleAppleSignup = async () => {
     try {
-      // In a real app, this would initiate OAuth flow
       await login("apple.oauth@example.com", "oauth_token");
-
       toast({
         title: "Account Created Successfully!",
         description: "Welcome to OmniTalk. You're now signed in.",
       });
-
       navigate("/dashboard");
     } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unable to create account with Apple. Please try again.";
       toast({
         title: "Apple Signup Failed",
-        description: "Unable to create account with Apple. Please try again.",
+        description: message,
         variant: "destructive",
       });
     }
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const passwordValidation = validatePassword(formData.password);
@@ -170,6 +186,7 @@ export default function Signup() {
                 onClick={handleGoogleSignup}
                 disabled={isLoading}
               >
+                {/* Google Icon */}
                 <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24">
                   <path
                     fill="currentColor"
@@ -197,6 +214,7 @@ export default function Signup() {
                 onClick={handleAppleSignup}
                 disabled={isLoading}
               >
+                {/* Apple Icon */}
                 <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09l.01-.01zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/>
                 </svg>
@@ -279,11 +297,7 @@ export default function Signup() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -306,11 +320,7 @@ export default function Signup() {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
@@ -320,16 +330,34 @@ export default function Signup() {
               <p className="text-sm font-medium text-foreground">Password must contain:</p>
               <div className="space-y-1">
                 <div className="flex items-center space-x-2 text-xs">
-                  <CheckCircle className={`w-3 h-3 ${passwordValidation.minLength ? 'text-success' : 'text-muted-foreground'}`} />
-                  <span className={`${passwordValidation.minLength ? 'text-success' : 'text-muted-foreground'}`}>At least 8 characters</span>
+                  <CheckCircle
+                    className={`w-3 h-3 ${passwordValidation.minLength ? "text-success" : "text-muted-foreground"}`}
+                  />
+                  <span
+                    className={`${passwordValidation.minLength ? "text-success" : "text-muted-foreground"}`}
+                  >
+                    At least 8 characters
+                  </span>
                 </div>
                 <div className="flex items-center space-x-2 text-xs">
-                  <CheckCircle className={`w-3 h-3 ${passwordValidation.hasUppercase ? 'text-success' : 'text-muted-foreground'}`} />
-                  <span className={`${passwordValidation.hasUppercase ? 'text-success' : 'text-muted-foreground'}`}>One uppercase letter</span>
+                  <CheckCircle
+                    className={`w-3 h-3 ${passwordValidation.hasUppercase ? "text-success" : "text-muted-foreground"}`}
+                  />
+                  <span
+                    className={`${passwordValidation.hasUppercase ? "text-success" : "text-muted-foreground"}`}
+                  >
+                    One uppercase letter
+                  </span>
                 </div>
                 <div className="flex items-center space-x-2 text-xs">
-                  <CheckCircle className={`w-3 h-3 ${passwordValidation.hasNumber ? 'text-success' : 'text-muted-foreground'}`} />
-                  <span className={`${passwordValidation.hasNumber ? 'text-success' : 'text-muted-foreground'}`}>One number</span>
+                  <CheckCircle
+                    className={`w-3 h-3 ${passwordValidation.hasNumber ? "text-success" : "text-muted-foreground"}`}
+                  />
+                  <span
+                    className={`${passwordValidation.hasNumber ? "text-success" : "text-muted-foreground"}`}
+                  >
+                    One number
+                  </span>
                 </div>
               </div>
             </div>

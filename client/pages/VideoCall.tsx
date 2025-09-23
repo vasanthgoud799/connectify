@@ -1,29 +1,75 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useVideoCall } from '@/contexts/VideoCallContext';
-import { useUser } from '@/contexts/UserContext';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuCheckboxItem, DropdownMenuSeparator, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Progress } from '@/components/ui/progress';
-import { 
-  Mic, MicOff, Video, VideoOff, Phone, PhoneOff, Monitor, 
-  Hand, Users, Settings, MoreVertical, Pin, Star, Volume2, 
-  VolumeX, Maximize, Grid3X3, User, Presentation,
-  Circle, Square, Palette, MessageSquare, BarChart3, 
-  HelpCircle, Upload, Download, Copy, Clock, Wifi,
-  WifiOff, Signal, SignalHigh, SignalMedium, SignalLow,
-  ChevronDown, ChevronUp, X, Plus
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useVideoCall } from "@/contexts/VideoCallContext";
+import { useUser } from "@/contexts/UserContext";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+import {
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  Phone,
+  PhoneOff,
+  Monitor,
+  Hand,
+  Users,
+  Settings,
+  MoreVertical,
+  Pin,
+  Star,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Grid3X3,
+  User,
+  Presentation,
+  Circle,
+  Square,
+  Palette,
+  MessageSquare,
+  BarChart3,
+  HelpCircle,
+  Upload,
+  Download,
+  Copy,
+  Clock,
+  Wifi,
+  WifiOff,
+  Signal,
+  SignalHigh,
+  SignalMedium,
+  SignalLow,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Plus,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import VideoFeed from "@/components/VideoFeed";
 
 const VideoCallPage = () => {
   const [searchParams] = useSearchParams();
@@ -66,6 +112,12 @@ const VideoCallPage = () => {
     admitParticipant,
     denyParticipant,
     joinCall,
+    acceptIncoming,
+    declineIncoming,
+    chatLog,
+    reactions,
+    sendChatMessage,
+    sendReaction,
   } = useVideoCall();
 
   // Component state
@@ -74,16 +126,16 @@ const VideoCallPage = () => {
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [showPolls, setShowPolls] = useState(false);
   const [showQA, setShowQA] = useState(false);
-  const [chatMessage, setChatMessage] = useState('');
-  const [pollQuestion, setPollQuestion] = useState('');
-  const [pollOptions, setPollOptions] = useState(['', '']);
-  const [qaQuestion, setQaQuestion] = useState('');
+  const [chatMessage, setChatMessage] = useState("");
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [qaQuestion, setQaQuestion] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const videoGridRef = useRef<HTMLDivElement>(null);
 
   // Auto-join call if callId is provided
   useEffect(() => {
-    const callId = searchParams.get('callId');
+    const callId = searchParams.get("callId");
     if (callId && !isInCall && !isConnecting) {
       joinCall(callId);
     }
@@ -92,49 +144,63 @@ const VideoCallPage = () => {
   // Handle call end
   const handleEndCall = () => {
     endCall();
-    navigate('/dashboard');
+    navigate("/dashboard");
   };
 
   // Connection quality indicator
   const getConnectionIcon = () => {
     switch (connectionQuality) {
-      case 'excellent': return <Signal className="h-4 w-4 text-green-500" />;
-      case 'good': return <SignalHigh className="h-4 w-4 text-yellow-500" />;
-      case 'poor': return <SignalMedium className="h-4 w-4 text-orange-500" />;
-      case 'disconnected': return <SignalLow className="h-4 w-4 text-red-500" />;
+      case "excellent":
+        return <Signal className="h-4 w-4 text-green-500" />;
+      case "good":
+        return <SignalHigh className="h-4 w-4 text-yellow-500" />;
+      case "poor":
+        return <SignalMedium className="h-4 w-4 text-orange-500" />;
+      case "disconnected":
+        return <SignalLow className="h-4 w-4 text-red-500" />;
     }
   };
 
   // Participant video component
-  const ParticipantVideo = ({ participant, isLocal = false, className = '' }: { 
-    participant: any, 
-    isLocal?: boolean, 
-    className?: string 
+  const ParticipantVideo = ({
+    participant,
+    isLocal = false,
+    className = "",
+  }: {
+    participant: any;
+    isLocal?: boolean;
+    className?: string;
   }) => (
-    <div className={`relative bg-slate-900 rounded-lg overflow-hidden ${className}`}>
-      {/* Video placeholder */}
-      <div className="aspect-video bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
-        {participant.isVideoEnabled ? (
-          <div className="w-full h-full flex items-center justify-center text-white">
-            📹 Video Feed
-          </div>
+    <div
+      className={`relative bg-slate-900 rounded-lg overflow-hidden ${className}`}
+    >
+      {/* Video area */}
+      <div className="aspect-video bg-black flex items-center justify-center">
+        {participant.stream && participant.isVideoEnabled ? (
+          <VideoFeed
+            stream={participant.stream}
+            muted={isLocal}
+            className="w-full h-full object-cover"
+          />
         ) : (
           <Avatar className="h-16 w-16">
             <AvatarImage src={participant.avatar} />
-            <AvatarFallback>{participant.name[0]}</AvatarFallback>
+            <AvatarFallback>{participant.name?.[0] || "?"} </AvatarFallback>
           </Avatar>
         )}
       </div>
-      
+
       {/* Overlay info */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-white text-sm font-medium">
-              {isLocal ? 'You' : participant.name}
+              {isLocal ? "You" : participant.name}
             </span>
             {participant.isHost && (
-              <Badge variant="secondary" className="text-xs">Host</Badge>
+              <Badge variant="secondary" className="text-xs">
+                Host
+              </Badge>
             )}
             {participant.isHandRaised && (
               <Hand className="h-4 w-4 text-yellow-400" />
@@ -152,20 +218,21 @@ const VideoCallPage = () => {
             {(pinnedParticipant === participant.id || participant.isPinned) && (
               <Pin className="h-4 w-4 text-blue-400" />
             )}
-            {(spotlightedParticipant === participant.id || participant.isSpotlighted) && (
+            {(spotlightedParticipant === participant.id ||
+              participant.isSpotlighted) && (
               <Star className="h-4 w-4 text-yellow-400" />
             )}
           </div>
         </div>
       </div>
-      
+
       {/* Participant actions menu (for host) */}
       {!isLocal && currentCall?.participants[0]?.isHost && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="sm" 
+            <Button
+              variant="ghost"
+              size="sm"
               className="absolute top-2 right-2 h-8 w-8 p-0 bg-black/50 hover:bg-black/70"
             >
               <MoreVertical className="h-4 w-4 text-white" />
@@ -174,18 +241,22 @@ const VideoCallPage = () => {
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => pinParticipant(participant.id)}>
               <Pin className="h-4 w-4 mr-2" />
-              {pinnedParticipant === participant.id ? 'Unpin' : 'Pin'} Video
+              {pinnedParticipant === participant.id ? "Unpin" : "Pin"} Video
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => spotlightParticipant(participant.id)}>
+            <DropdownMenuItem
+              onClick={() => spotlightParticipant(participant.id)}
+            >
               <Star className="h-4 w-4 mr-2" />
-              {spotlightedParticipant === participant.id ? 'Remove Spotlight' : 'Spotlight'}
+              {spotlightedParticipant === participant.id
+                ? "Remove Spotlight"
+                : "Spotlight"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => muteParticipant(participant.id)}>
               <MicOff className="h-4 w-4 mr-2" />
               Mute Participant
             </DropdownMenuItem>
-            <DropdownMenuItem 
+            <DropdownMenuItem
               onClick={() => removeParticipant(participant.id)}
               className="text-red-600"
             >
@@ -204,7 +275,9 @@ const VideoCallPage = () => {
         <Card className="w-96">
           <CardContent className="p-6 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <h3 className="text-lg font-semibold mb-2">Connecting to call...</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              Connecting to call...
+            </h3>
             <p className="text-sm text-muted-foreground">
               Setting up your audio and video
             </p>
@@ -220,7 +293,7 @@ const VideoCallPage = () => {
         <Card className="w-96">
           <CardContent className="p-6 text-center">
             <h3 className="text-lg font-semibold mb-4">Call not found</h3>
-            <Button onClick={() => navigate('/dashboard')}>
+            <Button onClick={() => navigate("/dashboard")}>
               Return to Dashboard
             </Button>
           </CardContent>
@@ -233,6 +306,23 @@ const VideoCallPage = () => {
     <div className="min-h-screen bg-slate-900 text-white relative overflow-hidden">
       {/* Header */}
       <div className="absolute top-0 left-0 right-0 z-50 bg-black/50 backdrop-blur-sm border-b border-slate-700">
+        {/* Incoming call banner */}
+        {currentCall && currentCall.title === "Incoming Call" && (
+          <div className="bg-blue-600/20 border-b border-blue-500/40 text-white px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              <span>Incoming call</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="secondary" onClick={acceptIncoming}>
+                Accept
+              </Button>
+              <Button size="sm" variant="destructive" onClick={declineIncoming}>
+                Decline
+              </Button>
+            </div>
+          </div>
+        )}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-4">
             <h1 className="text-lg font-semibold">{currentCall.title}</h1>
@@ -249,7 +339,7 @@ const VideoCallPage = () => {
               </div>
             )}
           </div>
-          
+
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-slate-300">
               <Clock className="h-3 w-3 mr-1" />
@@ -263,39 +353,76 @@ const VideoCallPage = () => {
         </div>
       </div>
 
+      {/* Reactions overlay */}
+      {reactions?.length ? (
+        <div className="pointer-events-none absolute inset-0 z-40 flex items-start justify-center p-8 gap-2">
+          {reactions.slice(-6).map((r) => (
+            <div key={r.id} className="text-4xl animate-bounce drop-shadow-lg">
+              {r.emoji}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       {/* Main video area */}
       <div className="pt-20 pb-24 h-screen flex">
         {/* Video grid */}
         <div className="flex-1 p-4" ref={videoGridRef}>
-          {viewMode === 'grid' && (
-            <div className={`grid gap-4 h-full ${
-              currentCall.participants.length === 1 ? 'grid-cols-1' :
-              currentCall.participants.length === 2 ? 'grid-cols-2' :
-              currentCall.participants.length <= 4 ? 'grid-cols-2 grid-rows-2' :
-              currentCall.participants.length <= 6 ? 'grid-cols-3 grid-rows-2' :
-              'grid-cols-3 grid-rows-3'
-            }`}>
+          {viewMode === "grid" && (
+            <div
+              className={`grid gap-4 h-full ${
+                currentCall.participants.length === 1
+                  ? "grid-cols-1"
+                  : currentCall.participants.length === 2
+                    ? "grid-cols-2"
+                    : currentCall.participants.length <= 4
+                      ? "grid-cols-2 grid-rows-2"
+                      : currentCall.participants.length <= 6
+                        ? "grid-cols-3 grid-rows-2"
+                        : "grid-cols-3 grid-rows-3"
+              }`}
+            >
               {currentCall.participants.map((participant, index) => (
                 <ParticipantVideo
                   key={participant.id}
                   participant={participant}
-                  isLocal={participant.id === user?.id}
-                  className={pinnedParticipant === participant.id ? 'ring-2 ring-blue-500' : ''}
+                  isLocal={
+                    participant.id === user?.id || participant.id === "me"
+                  }
+                  className={
+                    pinnedParticipant === participant.id
+                      ? "ring-2 ring-blue-500"
+                      : ""
+                  }
                 />
               ))}
             </div>
           )}
-          
-          {viewMode === 'speaker' && (
+
+          {viewMode === "speaker" && (
             <div className="h-full flex flex-col gap-4">
               {/* Main speaker */}
               <div className="flex-1">
                 <ParticipantVideo
-                  participant={spotlightedParticipant ? 
-                    currentCall.participants.find(p => p.id === spotlightedParticipant) || currentCall.participants[0] :
-                    currentCall.participants[0]
+                  participant={
+                    spotlightedParticipant
+                      ? currentCall.participants.find(
+                          (p) => p.id === spotlightedParticipant,
+                        ) || currentCall.participants[0]
+                      : currentCall.participants[0]
                   }
-                  isLocal={false}
+                  isLocal={
+                    (spotlightedParticipant
+                      ? currentCall.participants.find(
+                          (p) => p.id === spotlightedParticipant,
+                        )?.id
+                      : currentCall.participants[0]?.id) === user?.id ||
+                    (spotlightedParticipant
+                      ? currentCall.participants.find(
+                          (p) => p.id === spotlightedParticipant,
+                        )?.id
+                      : currentCall.participants[0]?.id) === "me"
+                  }
                   className="h-full"
                 />
               </div>
@@ -305,22 +432,26 @@ const VideoCallPage = () => {
                   <ParticipantVideo
                     key={participant.id}
                     participant={participant}
-                    isLocal={participant.id === user?.id}
+                    isLocal={
+                      participant.id === user?.id || participant.id === "me"
+                    }
                     className="w-32 flex-shrink-0"
                   />
                 ))}
               </div>
             </div>
           )}
-          
-          {viewMode === 'presentation' && isScreenSharing && (
+
+          {viewMode === "presentation" && isScreenSharing && (
             <div className="h-full flex gap-4">
               {/* Screen share area */}
               <div className="flex-1 bg-slate-800 rounded-lg flex items-center justify-center">
                 <div className="text-center">
                   <Monitor className="h-16 w-16 mx-auto mb-4 text-slate-400" />
                   <p className="text-lg">Screen Share Active</p>
-                  <p className="text-sm text-slate-400">Presenter's screen is being shared</p>
+                  <p className="text-sm text-slate-400">
+                    Presenter's screen is being shared
+                  </p>
                 </div>
               </div>
               {/* Participants sidebar */}
@@ -329,7 +460,9 @@ const VideoCallPage = () => {
                   <ParticipantVideo
                     key={participant.id}
                     participant={participant}
-                    isLocal={participant.id === user?.id}
+                    isLocal={
+                      participant.id === user?.id || participant.id === "me"
+                    }
                     className="h-32"
                   />
                 ))}
@@ -339,7 +472,11 @@ const VideoCallPage = () => {
         </div>
 
         {/* Side panels */}
-        {(showParticipants || showChat || showWhiteboard || showPolls || showQA) && (
+        {(showParticipants ||
+          showChat ||
+          showWhiteboard ||
+          showPolls ||
+          showQA) && (
           <div className="w-80 bg-slate-800 border-l border-slate-700">
             <Tabs defaultValue="participants" className="h-full flex flex-col">
               <TabsList className="grid w-full grid-cols-5 bg-slate-700">
@@ -359,53 +496,84 @@ const VideoCallPage = () => {
                   <HelpCircle className="h-4 w-4" />
                 </TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="participants" className="flex-1 p-4">
                 <div className="space-y-4">
-                  <h3 className="font-semibold">Participants ({currentCall.participants.length})</h3>
+                  <h3 className="font-semibold">
+                    Participants ({currentCall.participants.length})
+                  </h3>
                   <ScrollArea className="h-64">
                     <div className="space-y-2">
                       {currentCall.participants.map((participant) => (
-                        <div key={participant.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-700">
+                        <div
+                          key={participant.id}
+                          className="flex items-center justify-between p-2 rounded-lg bg-slate-700"
+                        >
                           <div className="flex items-center gap-2">
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={participant.avatar} />
-                              <AvatarFallback>{participant.name[0]}</AvatarFallback>
+                              <AvatarFallback>
+                                {participant.name[0]}
+                              </AvatarFallback>
                             </Avatar>
                             <div>
-                              <p className="text-sm font-medium">{participant.name}</p>
+                              <p className="text-sm font-medium">
+                                {participant.name}
+                              </p>
                               {participant.isHost && (
-                                <Badge variant="secondary" className="text-xs">Host</Badge>
+                                <Badge variant="secondary" className="text-xs">
+                                  Host
+                                </Badge>
                               )}
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
-                            {participant.isMuted && <MicOff className="h-4 w-4 text-red-400" />}
-                            {!participant.isVideoEnabled && <VideoOff className="h-4 w-4 text-red-400" />}
-                            {participant.isHandRaised && <Hand className="h-4 w-4 text-yellow-400" />}
+                            {participant.isMuted && (
+                              <MicOff className="h-4 w-4 text-red-400" />
+                            )}
+                            {!participant.isVideoEnabled && (
+                              <VideoOff className="h-4 w-4 text-red-400" />
+                            )}
+                            {participant.isHandRaised && (
+                              <Hand className="h-4 w-4 text-yellow-400" />
+                            )}
                           </div>
                         </div>
                       ))}
                     </div>
                   </ScrollArea>
-                  
+
                   {waitingRoomParticipants.length > 0 && (
                     <div className="space-y-2">
-                      <h4 className="font-medium">Waiting Room ({waitingRoomParticipants.length})</h4>
+                      <h4 className="font-medium">
+                        Waiting Room ({waitingRoomParticipants.length})
+                      </h4>
                       {waitingRoomParticipants.map((participant) => (
-                        <div key={participant.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-700">
+                        <div
+                          key={participant.id}
+                          className="flex items-center justify-between p-2 rounded-lg bg-slate-700"
+                        >
                           <div className="flex items-center gap-2">
                             <Avatar className="h-8 w-8">
                               <AvatarImage src={participant.avatar} />
-                              <AvatarFallback>{participant.name[0]}</AvatarFallback>
+                              <AvatarFallback>
+                                {participant.name[0]}
+                              </AvatarFallback>
                             </Avatar>
                             <span className="text-sm">{participant.name}</span>
                           </div>
                           <div className="flex gap-1">
-                            <Button size="sm" onClick={() => admitParticipant(participant.id)}>
+                            <Button
+                              size="sm"
+                              onClick={() => admitParticipant(participant.id)}
+                            >
                               Admit
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => denyParticipant(participant.id)}>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => denyParticipant(participant.id)}
+                            >
                               Deny
                             </Button>
                           </div>
@@ -415,19 +583,36 @@ const VideoCallPage = () => {
                   )}
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="chat" className="flex-1 p-4 flex flex-col">
                 <div className="flex-1 mb-4">
                   <ScrollArea className="h-48">
                     <div className="space-y-2">
-                      <div className="p-2 rounded-lg bg-slate-700">
-                        <p className="text-sm"><strong>Alice:</strong> Welcome everyone!</p>
-                        <span className="text-xs text-slate-400">2:34 PM</span>
-                      </div>
-                      <div className="p-2 rounded-lg bg-slate-700">
-                        <p className="text-sm"><strong>Bob:</strong> Thanks for organizing this call</p>
-                        <span className="text-xs text-slate-400">2:35 PM</span>
-                      </div>
+                      {currentCall &&
+                        chatLog &&
+                        chatLog.map((m) => {
+                          const author =
+                            currentCall.participants.find(
+                              (p) => p.id === m.fromUserId,
+                            )?.name ||
+                            (m.fromUserId === (user?.id || "me")
+                              ? "You"
+                              : m.fromUserId);
+                          const time = new Date(m.at).toLocaleTimeString();
+                          return (
+                            <div
+                              key={m.id}
+                              className="p-2 rounded-lg bg-slate-700"
+                            >
+                              <p className="text-sm">
+                                <strong>{author}:</strong> {m.text}
+                              </p>
+                              <span className="text-xs text-slate-400">
+                                {time}
+                              </span>
+                            </div>
+                          );
+                        })}
                     </div>
                   </ScrollArea>
                 </div>
@@ -437,60 +622,80 @@ const VideoCallPage = () => {
                     value={chatMessage}
                     onChange={(e) => setChatMessage(e.target.value)}
                     onKeyPress={(e) => {
-                      if (e.key === 'Enter') {
-                        setChatMessage('');
-                        toast({ title: "Message sent", description: "Your message was sent to all participants" });
+                      if (e.key === "Enter") {
+                        sendChatMessage(chatMessage);
+                        setChatMessage("");
                       }
                     }}
                   />
-                  <Button size="sm">Send</Button>
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      sendChatMessage(chatMessage);
+                      setChatMessage("");
+                    }}
+                  >
+                    Send
+                  </Button>
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="whiteboard" className="flex-1 p-4">
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="font-semibold">Whiteboard</h3>
-                    <Button 
-                      size="sm" 
-                      onClick={currentCall.hasWhiteboard ? closeWhiteboard : openWhiteboard}
+                    <Button
+                      size="sm"
+                      onClick={
+                        currentCall.hasWhiteboard
+                          ? closeWhiteboard
+                          : openWhiteboard
+                      }
                     >
-                      {currentCall.hasWhiteboard ? 'Close' : 'Open'}
+                      {currentCall.hasWhiteboard ? "Close" : "Open"}
                     </Button>
                   </div>
                   {currentCall.hasWhiteboard ? (
                     <div className="h-48 bg-white rounded-lg flex items-center justify-center">
-                      <p className="text-slate-600">Interactive Whiteboard Active</p>
+                      <p className="text-slate-600">
+                        Interactive Whiteboard Active
+                      </p>
                     </div>
                   ) : (
                     <div className="h-48 bg-slate-700 rounded-lg flex items-center justify-center">
                       <div className="text-center">
                         <Palette className="h-8 w-8 mx-auto mb-2 text-slate-400" />
-                        <p className="text-sm text-slate-400">Whiteboard not active</p>
+                        <p className="text-sm text-slate-400">
+                          Whiteboard not active
+                        </p>
                       </div>
                     </div>
                   )}
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="polls" className="flex-1 p-4">
                 <div className="space-y-4">
                   <h3 className="font-semibold">Polls</h3>
                   {currentCall.activePoll ? (
                     <div className="space-y-4">
                       <div className="p-3 bg-slate-700 rounded-lg">
-                        <h4 className="font-medium mb-2">{currentCall.activePoll.question}</h4>
+                        <h4 className="font-medium mb-2">
+                          {currentCall.activePoll.question}
+                        </h4>
                         <div className="space-y-2">
-                          {currentCall.activePoll.options.map((option, index) => (
-                            <Button
-                              key={index}
-                              variant="outline"
-                              className="w-full justify-start"
-                              onClick={() => votePoll(index)}
-                            >
-                              {option}
-                            </Button>
-                          ))}
+                          {currentCall.activePoll.options.map(
+                            (option, index) => (
+                              <Button
+                                key={index}
+                                variant="outline"
+                                className="w-full justify-start"
+                                onClick={() => votePoll(index)}
+                              >
+                                {option}
+                              </Button>
+                            ),
+                          )}
                         </div>
                       </div>
                       <Button onClick={endPoll} variant="destructive" size="sm">
@@ -524,7 +729,7 @@ const VideoCallPage = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setPollOptions([...pollOptions, ''])}
+                          onClick={() => setPollOptions([...pollOptions, ""])}
                         >
                           <Plus className="h-4 w-4 mr-2" />
                           Add Option
@@ -532,10 +737,16 @@ const VideoCallPage = () => {
                       </div>
                       <Button
                         onClick={() => {
-                          if (pollQuestion && pollOptions.filter(o => o.trim()).length >= 2) {
-                            createPoll(pollQuestion, pollOptions.filter(o => o.trim()));
-                            setPollQuestion('');
-                            setPollOptions(['', '']);
+                          if (
+                            pollQuestion &&
+                            pollOptions.filter((o) => o.trim()).length >= 2
+                          ) {
+                            createPoll(
+                              pollQuestion,
+                              pollOptions.filter((o) => o.trim()),
+                            );
+                            setPollQuestion("");
+                            setPollOptions(["", ""]);
                           }
                         }}
                       >
@@ -545,7 +756,7 @@ const VideoCallPage = () => {
                   )}
                 </div>
               </TabsContent>
-              
+
               <TabsContent value="qa" className="flex-1 p-4">
                 <div className="space-y-4">
                   <h3 className="font-semibold">Q&A</h3>
@@ -560,7 +771,7 @@ const VideoCallPage = () => {
                       onClick={() => {
                         if (qaQuestion.trim()) {
                           askQuestion(qaQuestion);
-                          setQaQuestion('');
+                          setQaQuestion("");
                         }
                       }}
                     >
@@ -573,9 +784,13 @@ const VideoCallPage = () => {
                         <div key={q.id} className="p-2 bg-slate-700 rounded-lg">
                           <p className="text-sm">{q.question}</p>
                           <div className="flex justify-between items-center mt-1">
-                            <span className="text-xs text-slate-400">by {q.author}</span>
+                            <span className="text-xs text-slate-400">
+                              by {q.author}
+                            </span>
                             {q.isAnswered && (
-                              <Badge variant="secondary" className="text-xs">Answered</Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                Answered
+                              </Badge>
                             )}
                           </div>
                         </div>
@@ -600,7 +815,11 @@ const VideoCallPage = () => {
               onClick={toggleMute}
               className="rounded-full"
             >
-              {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              {isMuted ? (
+                <MicOff className="h-5 w-5" />
+              ) : (
+                <Mic className="h-5 w-5" />
+              )}
             </Button>
             <Button
               variant={isVideoEnabled ? "secondary" : "destructive"}
@@ -608,7 +827,11 @@ const VideoCallPage = () => {
               onClick={toggleVideo}
               className="rounded-full"
             >
-              {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+              {isVideoEnabled ? (
+                <Video className="h-5 w-5" />
+              ) : (
+                <VideoOff className="h-5 w-5" />
+              )}
             </Button>
             <Button
               variant={isScreenSharing ? "default" : "secondary"}
@@ -633,21 +856,23 @@ const VideoCallPage = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="lg" className="rounded-full">
-                  {viewMode === 'grid' && <Grid3X3 className="h-5 w-5" />}
-                  {viewMode === 'speaker' && <User className="h-5 w-5" />}
-                  {viewMode === 'presentation' && <Presentation className="h-5 w-5" />}
+                  {viewMode === "grid" && <Grid3X3 className="h-5 w-5" />}
+                  {viewMode === "speaker" && <User className="h-5 w-5" />}
+                  {viewMode === "presentation" && (
+                    <Presentation className="h-5 w-5" />
+                  )}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => setViewMode('grid')}>
+                <DropdownMenuItem onClick={() => setViewMode("grid")}>
                   <Grid3X3 className="h-4 w-4 mr-2" />
                   Grid View
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setViewMode('speaker')}>
+                <DropdownMenuItem onClick={() => setViewMode("speaker")}>
                   <User className="h-4 w-4 mr-2" />
                   Speaker View
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setViewMode('presentation')}>
+                <DropdownMenuItem onClick={() => setViewMode("presentation")}>
                   <Presentation className="h-4 w-4 mr-2" />
                   Presentation View
                 </DropdownMenuItem>
@@ -676,12 +901,30 @@ const VideoCallPage = () => {
               onClick={currentCall.isRecording ? stopRecording : startRecording}
               className="rounded-full"
             >
-              {currentCall.isRecording ? <Square className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
+              {currentCall.isRecording ? (
+                <Square className="h-5 w-5" />
+              ) : (
+                <Circle className="h-5 w-5" />
+              )}
             </Button>
           </div>
 
           {/* Right controls */}
           <div className="flex items-center gap-2">
+            {/* Quick reactions */}
+            <div className="hidden sm:flex gap-1 mr-2">
+              {["👍", "❤️", "😂", "👏", "🎉"].map((e) => (
+                <Button
+                  key={e}
+                  variant="secondary"
+                  size="sm"
+                  className="rounded-full"
+                  onClick={() => sendReaction(e)}
+                >
+                  <span className="text-lg leading-none">{e}</span>
+                </Button>
+              ))}
+            </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="secondary" size="lg" className="rounded-full">
@@ -689,7 +932,9 @@ const VideoCallPage = () => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => setShowWhiteboard(!showWhiteboard)}>
+                <DropdownMenuItem
+                  onClick={() => setShowWhiteboard(!showWhiteboard)}
+                >
                   <Palette className="h-4 w-4 mr-2" />
                   Whiteboard
                 </DropdownMenuItem>

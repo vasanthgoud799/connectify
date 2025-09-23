@@ -6,11 +6,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { 
-  Send, 
-  Paperclip, 
-  Smile, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Send,
+  Paperclip,
+  Smile,
   Search,
   Phone,
   Video,
@@ -27,16 +32,20 @@ import {
   Copy,
   Star,
   Image,
-  File
+  File,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "@/contexts/UserContext";
-import { useMessaging, Message, Conversation } from "@/contexts/MessagingContext";
+import {
+  useMessaging,
+  Message,
+  Conversation,
+} from "@/contexts/MessagingContext";
 import { useVideoCall } from "@/contexts/VideoCallContext";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-const EMOJI_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
+const EMOJI_REACTIONS = ["👍", "❤️", "😂", "😮", "😢", "😡"];
 
 export default function Messages() {
   const navigate = useNavigate();
@@ -54,7 +63,7 @@ export default function Messages() {
     updateConversationSettings,
     deleteConversation,
     editMessage,
-    deleteMessage
+    deleteMessage,
   } = useMessaging();
   const { startCall } = useVideoCall();
   const { toast } = useToast();
@@ -65,7 +74,7 @@ export default function Messages() {
   const [replyToMessage, setReplyToMessage] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [editContent, setEditContent] = useState("");
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLTextAreaElement>(null);
@@ -78,7 +87,7 @@ export default function Messages() {
   // Auto-resize message input
   useEffect(() => {
     if (messageInputRef.current) {
-      messageInputRef.current.style.height = 'auto';
+      messageInputRef.current.style.height = "auto";
       messageInputRef.current.style.height = `${messageInputRef.current.scrollHeight}px`;
     }
   }, [messageInput]);
@@ -100,7 +109,12 @@ export default function Messages() {
     if (!activeConversation || !messageInput.trim()) return;
 
     try {
-      await sendMessage(activeConversation.id, messageInput, 'text', replyToMessage?.id);
+      await sendMessage(
+        activeConversation.id,
+        messageInput,
+        "text",
+        replyToMessage?.id,
+      );
       setMessageInput("");
       setReplyToMessage(null);
       setIsTyping(false);
@@ -169,9 +183,13 @@ export default function Messages() {
   const handleReaction = async (messageId: string, emoji: string) => {
     try {
       // Check if user already reacted with this emoji
-      const message = messages[activeConversation?.id || '']?.find(m => m.id === messageId);
-      const existingReaction = message?.reactions?.find(r => r.emoji === emoji && r.userId === user.id);
-      
+      const message = messages[activeConversation?.id || ""]?.find(
+        (m) => m.id === messageId,
+      );
+      const existingReaction = message?.reactions?.find(
+        (r) => r.emoji === emoji && r.userId === user.id,
+      );
+
       if (existingReaction) {
         await removeReaction(messageId, emoji);
       } else {
@@ -187,7 +205,7 @@ export default function Messages() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
@@ -200,7 +218,7 @@ export default function Messages() {
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
 
-    if (minutes < 1) return 'now';
+    if (minutes < 1) return "now";
     if (minutes < 60) return `${minutes}m`;
     if (hours < 24) return `${hours}h`;
     if (days < 7) return `${days}d`;
@@ -208,28 +226,37 @@ export default function Messages() {
   };
 
   const getConversationName = (conversation: Conversation) => {
-    if (conversation.type === 'group') {
-      return conversation.name || 'Group Chat';
+    if (conversation.type === "group") {
+      return conversation.name || "Group Chat";
     }
-    
+
     // Direct message - get the other participant's name
-    const otherParticipant = conversation.participants.find(p => p.userId !== user.id);
-    return otherParticipant?.name || 'Unknown User';
+    const otherParticipant = conversation.participants.find(
+      (p) => p.userId !== user.id,
+    );
+    return otherParticipant?.name || "Unknown User";
   };
 
   const getConversationAvatar = (conversation: Conversation) => {
-    if (conversation.type === 'group') {
+    if (conversation.type === "group") {
       return conversation.avatar;
     }
-    
-    const otherParticipant = conversation.participants.find(p => p.userId !== user.id);
+
+    const otherParticipant = conversation.participants.find(
+      (p) => p.userId !== user.id,
+    );
     return otherParticipant?.avatar;
   };
 
-  const filteredConversations = conversations.filter(conv => 
-    searchQuery === "" || 
-    getConversationName(conv).toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.lastMessage?.content.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredConversations = conversations.filter(
+    (conv) =>
+      searchQuery === "" ||
+      getConversationName(conv)
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      conv.lastMessage?.content
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -243,9 +270,11 @@ export default function Messages() {
               <div className="w-8 h-8 bg-gradient-to-br from-brand-500 to-brand-600 rounded-lg flex items-center justify-center">
                 <Video className="w-5 h-5 text-white" />
               </div>
-              <span className="text-lg font-bold text-foreground">OmniTalk</span>
+              <span className="text-lg font-bold text-foreground">
+                OmniTalk
+              </span>
             </Link>
-            
+
             <Button size="sm" variant="outline">
               <Plus className="w-4 h-4" />
             </Button>
@@ -273,17 +302,19 @@ export default function Messages() {
                 className={cn(
                   "flex items-center space-x-3 p-3 rounded-lg cursor-pointer transition-colors",
                   "hover:bg-muted/50",
-                  activeConversation?.id === conversation.id ? "bg-muted" : ""
+                  activeConversation?.id === conversation.id ? "bg-muted" : "",
                 )}
               >
                 <div className="relative">
                   <Avatar className="w-12 h-12">
                     <AvatarImage src={getConversationAvatar(conversation)} />
                     <AvatarFallback>
-                      {conversation.type === 'group' 
-                        ? '👥' 
-                        : getConversationName(conversation).split(' ').map(n => n[0]).join('')
-                      }
+                      {conversation.type === "group"
+                        ? "👥"
+                        : getConversationName(conversation)
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")}
                     </AvatarFallback>
                   </Avatar>
                   {conversation.settings.pinned && (
@@ -307,16 +338,18 @@ export default function Messages() {
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center justify-between mt-1">
                     <p className="text-sm text-muted-foreground truncate">
-                      {conversation.lastMessage 
+                      {conversation.lastMessage
                         ? `${conversation.lastMessage.senderName}: ${conversation.lastMessage.content}`
-                        : "No messages yet"
-                      }
+                        : "No messages yet"}
                     </p>
                     {conversation.unreadCount > 0 && (
-                      <Badge variant="default" className="ml-2 px-2 py-0.5 text-xs">
+                      <Badge
+                        variant="default"
+                        className="ml-2 px-2 py-0.5 text-xs"
+                      >
                         {conversation.unreadCount}
                       </Badge>
                     )}
@@ -336,24 +369,27 @@ export default function Messages() {
             <div className="p-4 border-b border-border flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Avatar className="w-10 h-10">
-                  <AvatarImage src={getConversationAvatar(activeConversation)} />
+                  <AvatarImage
+                    src={getConversationAvatar(activeConversation)}
+                  />
                   <AvatarFallback>
-                    {activeConversation.type === 'group' 
-                      ? '👥' 
-                      : getConversationName(activeConversation).split(' ').map(n => n[0]).join('')
-                    }
+                    {activeConversation.type === "group"
+                      ? "👥"
+                      : getConversationName(activeConversation)
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
                   </AvatarFallback>
                 </Avatar>
-                
+
                 <div>
                   <h2 className="font-semibold text-foreground">
                     {getConversationName(activeConversation)}
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    {activeConversation.type === 'group' 
+                    {activeConversation.type === "group"
                       ? `${activeConversation.participants.length} members`
-                      : 'Direct message'
-                    }
+                      : "Direct message"}
                   </p>
                 </div>
               </div>
@@ -364,11 +400,14 @@ export default function Messages() {
                   variant="ghost"
                   onClick={async () => {
                     const participants = activeConversation.participants
-                      .filter(p => p.userId !== user.id)
-                      .map(p => p.userId);
+                      .filter((p) => p.userId !== user.id)
+                      .map((p) => p.userId);
 
-                    await startCall(participants, `Audio call with ${getConversationName(activeConversation)}`);
-                    navigate('/call');
+                    await startCall(
+                      participants,
+                      `Audio call with ${getConversationName(activeConversation)}`,
+                    );
+                    navigate("/call");
                   }}
                 >
                   <Phone className="w-4 h-4" />
@@ -378,16 +417,19 @@ export default function Messages() {
                   variant="ghost"
                   onClick={async () => {
                     const participants = activeConversation.participants
-                      .filter(p => p.userId !== user.id)
-                      .map(p => p.userId);
+                      .filter((p) => p.userId !== user.id)
+                      .map((p) => p.userId);
 
-                    await startCall(participants, `Video call with ${getConversationName(activeConversation)}`);
-                    navigate('/call');
+                    await startCall(
+                      participants,
+                      `Video call with ${getConversationName(activeConversation)}`,
+                    );
+                    navigate("/call");
                   }}
                 >
                   <Video className="w-4 h-4" />
                 </Button>
-                
+
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button size="sm" variant="ghost">
@@ -395,20 +437,52 @@ export default function Messages() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => updateConversationSettings(activeConversation.id, { pinned: !activeConversation.settings.pinned })}>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        updateConversationSettings(activeConversation.id, {
+                          pinned: !activeConversation.settings.pinned,
+                        })
+                      }
+                    >
                       <Pin className="w-4 h-4 mr-2" />
-                      {activeConversation.settings.pinned ? 'Unpin' : 'Pin'} Conversation
+                      {activeConversation.settings.pinned
+                        ? "Unpin"
+                        : "Pin"}{" "}
+                      Conversation
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateConversationSettings(activeConversation.id, { muted: !activeConversation.settings.muted })}>
-                      {activeConversation.settings.muted ? <Volume2 className="w-4 h-4 mr-2" /> : <VolumeX className="w-4 h-4 mr-2" />}
-                      {activeConversation.settings.muted ? 'Unmute' : 'Mute'} Notifications
+                    <DropdownMenuItem
+                      onClick={() =>
+                        updateConversationSettings(activeConversation.id, {
+                          muted: !activeConversation.settings.muted,
+                        })
+                      }
+                    >
+                      {activeConversation.settings.muted ? (
+                        <Volume2 className="w-4 h-4 mr-2" />
+                      ) : (
+                        <VolumeX className="w-4 h-4 mr-2" />
+                      )}
+                      {activeConversation.settings.muted ? "Unmute" : "Mute"}{" "}
+                      Notifications
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => updateConversationSettings(activeConversation.id, { archived: !activeConversation.settings.archived })}>
+                    <DropdownMenuItem
+                      onClick={() =>
+                        updateConversationSettings(activeConversation.id, {
+                          archived: !activeConversation.settings.archived,
+                        })
+                      }
+                    >
                       <Archive className="w-4 h-4 mr-2" />
-                      {activeConversation.settings.archived ? 'Unarchive' : 'Archive'} Conversation
+                      {activeConversation.settings.archived
+                        ? "Unarchive"
+                        : "Archive"}{" "}
+                      Conversation
                     </DropdownMenuItem>
                     <Separator />
-                    <DropdownMenuItem onClick={() => deleteConversation(activeConversation.id)} className="text-destructive">
+                    <DropdownMenuItem
+                      onClick={() => deleteConversation(activeConversation.id)}
+                      className="text-destructive"
+                    >
                       <Trash2 className="w-4 h-4 mr-2" />
                       Delete Conversation
                     </DropdownMenuItem>
@@ -422,43 +496,58 @@ export default function Messages() {
               <div className="space-y-4">
                 {messages[activeConversation.id]?.map((message, index) => {
                   const isOwn = message.senderId === user.id;
-                  const showAvatar = !isOwn && (
-                    index === 0 || 
-                    messages[activeConversation.id][index - 1]?.senderId !== message.senderId
-                  );
+                  const showAvatar =
+                    !isOwn &&
+                    (index === 0 ||
+                      messages[activeConversation.id][index - 1]?.senderId !==
+                        message.senderId);
 
                   return (
                     <div
                       key={message.id}
                       className={cn(
                         "flex",
-                        isOwn ? "justify-end" : "justify-start"
+                        isOwn ? "justify-end" : "justify-start",
                       )}
                     >
-                      <div className={cn(
-                        "flex space-x-2 max-w-[70%]",
-                        isOwn ? "flex-row-reverse space-x-reverse" : ""
-                      )}>
+                      <div
+                        className={cn(
+                          "flex space-x-2 max-w-[70%]",
+                          isOwn ? "flex-row-reverse space-x-reverse" : "",
+                        )}
+                      >
                         {showAvatar && (
                           <Avatar className="w-8 h-8">
                             <AvatarImage src={message.senderAvatar} />
                             <AvatarFallback>
-                              {message.senderName.split(' ').map(n => n[0]).join('')}
+                              {message.senderName
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")}
                             </AvatarFallback>
                           </Avatar>
                         )}
-                        
-                        <div className={cn("space-y-1", !showAvatar && !isOwn ? "ml-10" : "")}>
+
+                        <div
+                          className={cn(
+                            "space-y-1",
+                            !showAvatar && !isOwn ? "ml-10" : "",
+                          )}
+                        >
                           {!isOwn && showAvatar && (
                             <p className="text-xs font-medium text-foreground">
                               {message.senderName}
                             </p>
                           )}
-                          
+
                           {message.replyTo && (
                             <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded border-l-2 border-brand-500">
-                              <p className="font-medium">{message.replyTo.senderName}</p>
-                              <p className="truncate">{message.replyTo.content}</p>
+                              <p className="font-medium">
+                                {message.replyTo.senderName}
+                              </p>
+                              <p className="truncate">
+                                {message.replyTo.content}
+                              </p>
                             </div>
                           )}
 
@@ -466,121 +555,155 @@ export default function Messages() {
                             <div
                               className={cn(
                                 "px-3 py-2 rounded-lg text-sm",
-                                isOwn 
-                                  ? "bg-brand-500 text-white" 
+                                isOwn
+                                  ? "bg-brand-500 text-white"
                                   : "bg-muted text-foreground",
-                                message.isDeleted ? "italic opacity-50" : ""
+                                message.isDeleted ? "italic opacity-50" : "",
                               )}
                             >
                               {editingMessage?.id === message.id ? (
                                 <div className="space-y-2">
                                   <Textarea
                                     value={editContent}
-                                    onChange={(e) => setEditContent(e.target.value)}
+                                    onChange={(e) =>
+                                      setEditContent(e.target.value)
+                                    }
                                     className="min-h-[60px]"
                                     autoFocus
                                   />
                                   <div className="flex items-center space-x-2">
-                                    <Button size="sm" onClick={handleEditMessage}>
+                                    <Button
+                                      size="sm"
+                                      onClick={handleEditMessage}
+                                    >
                                       Save
                                     </Button>
-                                    <Button size="sm" variant="outline" onClick={() => setEditingMessage(null)}>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => setEditingMessage(null)}
+                                    >
                                       Cancel
                                     </Button>
                                   </div>
                                 </div>
                               ) : (
                                 <>
-                                  <p className="whitespace-pre-wrap">{message.content}</p>
+                                  <p className="whitespace-pre-wrap">
+                                    {message.content}
+                                  </p>
                                   {message.editedAt && (
-                                    <p className="text-xs opacity-70 mt-1">(edited)</p>
+                                    <p className="text-xs opacity-70 mt-1">
+                                      (edited)
+                                    </p>
                                   )}
                                 </>
                               )}
                             </div>
 
                             {/* Message Actions */}
-                            {!message.isDeleted && editingMessage?.id !== message.id && (
-                              <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <div className="flex items-center space-x-1 bg-background border border-border rounded-lg p-1 shadow-sm">
-                                  {EMOJI_REACTIONS.map((emoji) => (
+                            {!message.isDeleted &&
+                              editingMessage?.id !== message.id && (
+                                <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="flex items-center space-x-1 bg-background border border-border rounded-lg p-1 shadow-sm">
+                                    {EMOJI_REACTIONS.map((emoji) => (
+                                      <Button
+                                        key={emoji}
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-6 w-6 p-0 text-xs"
+                                        onClick={() =>
+                                          handleReaction(message.id, emoji)
+                                        }
+                                      >
+                                        {emoji}
+                                      </Button>
+                                    ))}
+
+                                    <Separator
+                                      orientation="vertical"
+                                      className="h-4"
+                                    />
+
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-6 w-6 p-0"
+                                      onClick={() => setReplyToMessage(message)}
+                                    >
+                                      <Reply className="w-3 h-3" />
+                                    </Button>
+
+                                    {isOwn && (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-6 w-6 p-0"
+                                          onClick={() => {
+                                            setEditingMessage(message);
+                                            setEditContent(message.content);
+                                          }}
+                                        >
+                                          <Edit className="w-3 h-3" />
+                                        </Button>
+
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          className="h-6 w-6 p-0 text-destructive"
+                                          onClick={() =>
+                                            handleDeleteMessage(message.id)
+                                          }
+                                        >
+                                          <Trash2 className="w-3 h-3" />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                            {/* Reactions */}
+                            {message.reactions &&
+                              message.reactions.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {Object.entries(
+                                    message.reactions.reduce(
+                                      (acc, reaction) => {
+                                        if (!acc[reaction.emoji]) {
+                                          acc[reaction.emoji] = [];
+                                        }
+                                        acc[reaction.emoji].push(reaction);
+                                        return acc;
+                                      },
+                                      {} as Record<
+                                        string,
+                                        typeof message.reactions
+                                      >,
+                                    ),
+                                  ).map(([emoji, reactions]) => (
                                     <Button
                                       key={emoji}
                                       size="sm"
-                                      variant="ghost"
-                                      className="h-6 w-6 p-0 text-xs"
-                                      onClick={() => handleReaction(message.id, emoji)}
+                                      variant="outline"
+                                      className={cn(
+                                        "h-6 px-2 text-xs",
+                                        reactions.some(
+                                          (r) => r.userId === user.id,
+                                        )
+                                          ? "bg-brand-100 border-brand-500"
+                                          : "",
+                                      )}
+                                      onClick={() =>
+                                        handleReaction(message.id, emoji)
+                                      }
                                     >
-                                      {emoji}
+                                      {emoji} {reactions.length}
                                     </Button>
                                   ))}
-                                  
-                                  <Separator orientation="vertical" className="h-4" />
-                                  
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-6 w-6 p-0"
-                                    onClick={() => setReplyToMessage(message)}
-                                  >
-                                    <Reply className="w-3 h-3" />
-                                  </Button>
-                                  
-                                  {isOwn && (
-                                    <>
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-6 w-6 p-0"
-                                        onClick={() => {
-                                          setEditingMessage(message);
-                                          setEditContent(message.content);
-                                        }}
-                                      >
-                                        <Edit className="w-3 h-3" />
-                                      </Button>
-                                      
-                                      <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-6 w-6 p-0 text-destructive"
-                                        onClick={() => handleDeleteMessage(message.id)}
-                                      >
-                                        <Trash2 className="w-3 h-3" />
-                                      </Button>
-                                    </>
-                                  )}
                                 </div>
-                              </div>
-                            )}
-
-                            {/* Reactions */}
-                            {message.reactions && message.reactions.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1">
-                                {Object.entries(
-                                  message.reactions.reduce((acc, reaction) => {
-                                    if (!acc[reaction.emoji]) {
-                                      acc[reaction.emoji] = [];
-                                    }
-                                    acc[reaction.emoji].push(reaction);
-                                    return acc;
-                                  }, {} as Record<string, typeof message.reactions>)
-                                ).map(([emoji, reactions]) => (
-                                  <Button
-                                    key={emoji}
-                                    size="sm"
-                                    variant="outline"
-                                    className={cn(
-                                      "h-6 px-2 text-xs",
-                                      reactions.some(r => r.userId === user.id) ? "bg-brand-100 border-brand-500" : ""
-                                    )}
-                                    onClick={() => handleReaction(message.id, emoji)}
-                                  >
-                                    {emoji} {reactions.length}
-                                  </Button>
-                                ))}
-                              </div>
-                            )}
+                              )}
                           </div>
 
                           <p className="text-xs text-muted-foreground">
@@ -626,7 +749,7 @@ export default function Messages() {
                 >
                   <Paperclip className="w-4 h-4" />
                 </Button>
-                
+
                 <div className="flex-1">
                   <Textarea
                     ref={messageInputRef}
@@ -639,10 +762,7 @@ export default function Messages() {
                   />
                 </div>
 
-                <Button
-                  size="sm"
-                  variant="ghost"
-                >
+                <Button size="sm" variant="ghost">
                   <Smile className="w-4 h-4" />
                 </Button>
 
@@ -672,8 +792,12 @@ export default function Messages() {
                 <Video className="w-12 h-12 text-muted-foreground" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-foreground">Welcome to OmniTalk</h2>
-                <p className="text-muted-foreground">Select a conversation to start messaging</p>
+                <h2 className="text-xl font-semibold text-foreground">
+                  Welcome to OmniTalk
+                </h2>
+                <p className="text-muted-foreground">
+                  Select a conversation to start messaging
+                </p>
               </div>
               <Button>
                 <Plus className="w-4 h-4 mr-2" />

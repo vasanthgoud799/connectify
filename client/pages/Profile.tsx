@@ -29,7 +29,7 @@ import {
   Eye,
   EyeOff
 } from "lucide-react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { Link as RouterLink, useNavigate, Navigate } from "react-router-dom";
 import { useUser, PresenceStatus } from "@/contexts/UserContext";
 import { useToast } from "@/hooks/use-toast";
 
@@ -81,8 +81,7 @@ export default function Profile() {
   });
 
   if (!user) {
-    navigate('/login');
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   const handleProfileSave = async () => {

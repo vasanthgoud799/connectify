@@ -56,9 +56,10 @@ export default function Login() {
 
       navigate("/dashboard");
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Invalid email or password. Please try again.";
       toast({
         title: "Login Failed",
-        description: "Invalid email or password. Please try again.",
+        description: message,
         variant: "destructive",
       });
     }
@@ -76,9 +77,10 @@ export default function Login() {
 
       navigate("/dashboard");
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to sign in with Google. Please try again.";
       toast({
         title: "Google Login Failed",
-        description: "Unable to sign in with Google. Please try again.",
+        description: message,
         variant: "destructive",
       });
     }
@@ -96,9 +98,10 @@ export default function Login() {
 
       navigate("/dashboard");
     } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to sign in with Apple. Please try again.";
       toast({
         title: "Apple Login Failed",
-        description: "Unable to sign in with Apple. Please try again.",
+        description: message,
         variant: "destructive",
       });
     }
